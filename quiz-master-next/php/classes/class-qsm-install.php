@@ -180,23 +180,19 @@ class QSM_Install {
 		$field_array = array(
 			'id'         => 'randomness_order',
 			'label'      => __( 'Randomization Mode', 'quiz-master-next' ) . '<span class="qsm-opt-desc"> ' . __( 'Randomize the order of questions or answers every time the quiz loads', 'quiz-master-next' ) . ' </span>',
-			'type'       => 'radio',
+			'type'       => 'checkbox',
 			'options'    => array(
 				array(
-					'label' => __( 'None', 'quiz-master-next' ),
-					'value' => 0,
-				),
-				array(
 					'label' => __( 'Questions', 'quiz-master-next' ),
-					'value' => 1,
+					'value' => 'questions',
 				),
 				array(
 					'label' => __( 'Answers', 'quiz-master-next' ),
-					'value' => 3,
+					'value' => 'answers',
 				),
 				array(
-					'label' => __( 'Questions & Answers', 'quiz-master-next' ),
-					'value' => 2,
+					'label' => __( 'Pages', 'quiz-master-next' ),
+					'value' => 'pages',
 				),
 			),
 			'default'    => 0,
@@ -1433,7 +1429,6 @@ class QSM_Install {
 			'option_tab' => 'text-legacy',
 		);
 		$mlwQuizMasterNext->pluginHelper->register_quiz_setting( $field_array, 'quiz_text' );
-
 	}
 
 	/**
@@ -2108,7 +2103,7 @@ class QSM_Install {
 			}
 
 			// Update 8.1.14
-			if ( ! $wpdb->query("SHOW KEYS FROM {$results_table_name} WHERE Key_name = 'unique_id_unique'" ) ) {
+			if ( ! $wpdb->query("SHOW KEYS FROM {$results_table_name} WHERE Key_name = 'unique_id'" ) ) {
 				$results = $mlwQuizMasterNext->wpdb_alter_table_query("ALTER TABLE {$results_table_name} ADD UNIQUE (unique_id)");
 			}
 
@@ -2179,7 +2174,6 @@ class QSM_Install {
 		}
 		return (array) $links;
 	}
-
 }
 
 $qsm_install = new QSM_Install();

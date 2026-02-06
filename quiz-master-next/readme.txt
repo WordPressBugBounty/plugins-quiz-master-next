@@ -2,9 +2,9 @@
 Contributors: quizsurvey,expresstech
 Tags: quiz, survey, test, exam, online assessment
 Requires at least: 4.9
-Tested up to: 6.8
+Tested up to: 6.9
 Requires PHP: 5.4
-Stable tag: 10.2.8
+Stable tag: 10.3.5
 License: GPLv2
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -13,7 +13,7 @@ Create quizzes, surveys, and tests easily on WordPress with this versatile plugi
 
 **Quiz and Survey Master** is the easiest quiz and survey maker plugin for creating quizzes, surveys, and forms on your WordPress website. Create everything from fun trivia quizzes to in-depth customer satisfaction assessments, using a user-friendly **drag-and-drop quiz maker** interface. Go beyond basic questions with multimedia support for richer content, analyze results to gain valuable insights, and even integrate with email marketing services to capture leads. Quiz & Survey Master is a **powerful WordPress plugin** to increase user engagement, gather valuable data, and build a stronger connection with your audience.
 
-**Try Demo ➡️ [Get a personal sandbox demo with QSM](https://instawp.io/plugins/quiz-master-next?utm_source=wp.org&utm_medium=wp_org_description&utm_campaign=wp_org_to_qsm)**
+**Try Demo ➡️ [Get a personal sandbox demo with QSM](https://app.instawp.io/launch?s=qsm-wporg&d=v2)**
 
 https://youtu.be/G5w8F6XRgio
 
@@ -199,6 +199,10 @@ Yes, QSM allows you to collect and analyze user data from your quizzes and surve
 
 As a WordPress quiz maker, QSM is designed to be compatible with most other plugins and themes. However, in case of any conflicts or issues, our team provides comprehensive documentation, including common conflict solutions and guidelines for theme compatibility.
 
+= Where do I report security bugs found in this plugin? =
+
+Please report security bugs found in the source code of the Quiz And Survey Master plugin through the [Patchstack Vulnerability Disclosure  Program](https://patchstack.com/database/vdp/9e5fb395-726e-4cf4-86fd-84d1608504e1). The Patchstack team will assist you with verification, CVE assignment, and notify the developers of this plugin.
+
 == Screenshots ==
 
 1. Dashboard
@@ -221,6 +225,33 @@ As a WordPress quiz maker, QSM is designed to be compatible with most other plug
 18. Database
 
 == Changelog ==
+= 10.3.5 ( January 28, 2026 ) =
+* Patch: Authentication validation issue affecting update results
+* Patch: Added authentication checks when enabling multi-category support for questions
+
+= 10.3.4 ( January 06, 2026 ) =
+* Patch: Vulnerability where users can modify or delete quizzes/questions beyond their role permissions
+* Enhancement: Added support for using variable in quiz redirect URL
+
+
+= 10.3.3 ( December 19, 2025 ) =
+* Patch: Broken Access Control vulnerability
+
+= 10.3.2 ( December 04, 2025 ) =
+* Bug: Patch vulnerability with qsm_dashboard_delete_result function
+* Bug: Fixed SQL Injection via is_linking parameter
+* Enhancement: Strengthened validation and overall security across quiz questions and other admin pages
+
+= 10.3.1 ( November 11, 2025 ) =
+* Bug: Resolved issue with the "Next" button when multiple quizzes are present on a single page
+* Bug: Fixed inline results display issue occurring when sequential answers are enabled
+
+= 10.3.0 ( November 5, 2025 ) =
+* Feature: Added option to randomize questions within each page
+* Feature: Added option to randomize the order of pages only
+* Bug: Fixed issue with incorrect inline results for multiple fill-in-the-blank questions
+
+
 = 10.2.8 ( October 3, 2025 ) =
 * Feature: Added option to shuffle questions in edit quiz page
 * Bug: Resolved conflict between per-user limits and total quiz limits

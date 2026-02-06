@@ -1183,6 +1183,7 @@ jQuery(document).ready(function () {
             $("#limit_email_based_submission").find(".qsm-opt-desc").hide();
         }
     }).trigger('change');
+
     if (jQuery('body').hasClass('post-type-qsm_quiz')) {
 
         $('#new_quiz_button_two').on('click', function (event) {
@@ -1453,6 +1454,10 @@ function qsm_is_substring_in_array( text, array ) {
 (function ($) {
     $(document).on('click', '.enable-multiple-category', function (e) {
         e.preventDefault();
+        const nonce = $(this).data('qsm-mc-nonce');
+        if (!nonce) {
+            return;
+        }
         $('.category-action').html('<span>' + qsm_admin_messages.updating_db + '</span>');
         $('.category-action').prev().hide();
         $('.category-action').prev().prev().hide();
@@ -1471,7 +1476,7 @@ function qsm_is_substring_in_array( text, array ) {
             data: {
                 action: 'enable_multiple_categories',
                 value: 'enable',
-                nonce: wpApiSettings.nonce
+                nonce: nonce
             },
             success: function (response) {
                 clearInterval(category_interval);
@@ -1487,6 +1492,10 @@ function qsm_is_substring_in_array( text, array ) {
 
     $(document).on('click', '.cancel-multiple-category', function (e) {
         e.preventDefault();
+        const nonce = $(this).data('qsm-mc-nonce');
+        if (!nonce) {
+            return;
+        }
         $('.category-action').html('');
         $.ajax({
             type: "POST",
@@ -1494,7 +1503,7 @@ function qsm_is_substring_in_array( text, array ) {
             data: {
                 action: 'enable_multiple_categories',
                 value: 'cancel',
-                nonce: wpApiSettings.nonce
+                nonce: nonce
             },
             success: function (response) {
                 if (response.success) {
@@ -3566,7 +3575,7 @@ var QSM_Quiz_Broadcast_Channel;
                     }
                     //Append extra settings
                     var all_setting = question.get('settings');
-                    if ((typeof all_setting === 'undefined') || (all_setting && typeof all_setting.isPublished === 'undefined')) {
+                    if (all_setting?.isPublished === undefined) {
                         $('#qsm-question-status').prop('checked', true).trigger('change');
                     }
                     if (all_setting === null || typeof all_setting === "undefined") { } else {
