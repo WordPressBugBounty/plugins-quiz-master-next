@@ -543,8 +543,6 @@ label.inline .mlw_qmn_question,
   line-height: 24px;
 }
 
-/* Also colour the label: themes such as Astra set a colour on `label`, which beats the inherited one. */
-.data-correct-answer,
-.data-correct-answer label {
+.data-correct-answer {
     color: green;
 }
