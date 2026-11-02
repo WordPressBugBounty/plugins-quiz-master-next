@@ -643,6 +643,7 @@ class QMNQuizManager {
 				'disable_first_page'                 => $qmn_quiz_options->disable_first_page,
 				'enable_result_after_timer_end'      => isset( $qmn_quiz_options->enable_result_after_timer_end ) ? $qmn_quiz_options->enable_result_after_timer_end : '',
 				'enable_quick_result_mc'             => isset( $qmn_quiz_options->enable_quick_result_mc ) ? $qmn_quiz_options->enable_quick_result_mc : '',
+				'highlight_correct_answer'           => isset( $qmn_quiz_options->highlight_correct_answer ) ? $qmn_quiz_options->highlight_correct_answer : 1,
 				'end_quiz_if_wrong'                  => isset( $qmn_quiz_options->end_quiz_if_wrong ) ? $qmn_quiz_options->end_quiz_if_wrong : 0,
 				'form_disable_autofill'              => isset( $qmn_quiz_options->form_disable_autofill ) ? $qmn_quiz_options->form_disable_autofill : '',
 				'disable_mathjax'                    => isset( $qmn_quiz_options->disable_mathjax ) ? $qmn_quiz_options->disable_mathjax : '',
@@ -677,16 +678,42 @@ class QMNQuizManager {
 			$enc_questions                      = array();
 			if ( ! empty( $qpages_arr ) ) {
 				foreach ( $qpages_arr as $item ) {
-					$enc_questions = array_merge( $enc_questions, $item['questions'] );
+					if ( ! empty( $item['questions'] ) && is_array( $item['questions'] ) ) {
+						$enc_questions = array_merge( $enc_questions, $item['questions'] );
+					}
 				}
 			}
-			$enc_questions      = implode( ',', $enc_questions );
-			$question_array     = $wpdb->get_results(
-				"SELECT quiz_id, question_id, answer_array, question_answer_info, question_type_new, question_settings
-				FROM {$wpdb->prefix}mlw_questions
-				WHERE question_id IN ($enc_questions)",
-				ARRAY_A
-			);
+			// qpages can be empty or out of step with pages (e.g. a question added but the
+			// Questions tab not saved yet). load_questions() still renders those questions
+			// from pages, or from quiz_id when pages is empty, so build the quick-result data
+			// from the same sources or the front end reads answer_array off undefined.
+			if ( is_array( $pages_arr ) ) {
+				foreach ( $pages_arr as $page ) {
+					if ( is_array( $page ) ) {
+						$enc_questions = array_merge( $enc_questions, $page );
+					}
+				}
+			}
+			if ( empty( $enc_questions ) ) {
+				$enc_questions = $wpdb->get_col( $wpdb->prepare( "SELECT question_id FROM {$wpdb->prefix}mlw_questions WHERE quiz_id = %d AND deleted = 0", $qmn_json_data['quiz_id'] ) );
+			}
+			// CVE-2026-116509: qpages is stored quiz data a Contributor can write, and
+			// quizzes saved before the fix may already hold a payload. Cast at the sink.
+			$enc_questions      = array_values( array_unique( array_filter( array_map( 'intval', $enc_questions ), function ( $id ) {
+				return $id > 0;
+			} ) ) );
+			$question_array     = array();
+			if ( ! empty( $enc_questions ) ) {
+				$question_array = $wpdb->get_results(
+					$wpdb->prepare(
+						"SELECT quiz_id, question_id, answer_array, question_answer_info, question_type_new, question_settings
+						FROM {$wpdb->prefix}mlw_questions
+						WHERE question_id IN (" . implode( ',', array_fill( 0, count( $enc_questions ), '%d' ) ) . ')',
+						$enc_questions
+					),
+					ARRAY_A
+				);
+			}
 			$questions_settings = array();
 			foreach ( $question_array as $key => $question ) {
 
@@ -1087,8 +1114,9 @@ class QMNQuizManager {
 					}
 					$question_ids = array_unique( $random );
 				}
-			} elseif ( 1 == $quiz_options->limit_category_checkbox && ! empty( maybe_unserialize( $quiz_options->select_category_question ) ) && $is_quiz_page ) {
-				$category_question_limit = maybe_unserialize( $quiz_options->select_category_question );
+			} elseif ( 1 == $quiz_options->limit_category_checkbox && is_array( qsm_unserialize_no_objects( $quiz_options->select_category_question ) ) && ! empty( qsm_unserialize_no_objects( $quiz_options->select_category_question ) ) && $is_quiz_page ) {
+				// Security (PHP Object Injection): never instantiate objects from this quiz option.
+				$category_question_limit = qsm_unserialize_no_objects( $quiz_options->select_category_question );
 				$categories              = QSM_Questions::get_quiz_categories( $quiz_id );
 				$category_ids            = ( isset( $categories['list'] ) ? array_keys( $categories['list'] ) : array() );
 				if ( ! empty( $category_ids ) ) {
@@ -1222,7 +1250,7 @@ class QMNQuizManager {
 			$question_ids = apply_filters( 'qsm_load_questions_ids', array(), $quiz_id, $quiz_options );
 			$question_sql = '';
 			if ( ! empty( $question_ids ) ) {
-				$qids         = implode( ', ', $question_ids );
+				$qids         = implode( ', ', array_map( 'intval', $question_ids ) );
 				$question_sql = " AND question_id IN ($qids) ";
 			}
 			$questions = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}mlw_questions WHERE quiz_id=%d AND deleted=0 %1s %2s %3s", $quiz_id, $question_sql, $order_by_sql, $limit_sql ) );
@@ -3378,8 +3406,17 @@ class QMNQuizManager {
 		}
 
 		// Calculate Total Percent Score And Average Points Only If Total Questions Doesn't Equal Zero To Avoid Division By Zero Error
-		if ( 0 !== $total_questions ) {
-			$total_score = round( ( ( $total_correct / ( $total_questions - count( $hidden_questions ) ) ) * 100 ), 2 );
+		// total_questions only counts graded questions, so only subtract hidden questions that are graded.
+		// A hidden Text/HTML section would otherwise shrink the denominator and push the score above 100%.
+		global $mlwQuizMasterNext;
+		$hidden_graded_count = 0;
+		foreach ( $hidden_questions as $hidden_question_id ) {
+			if ( isset( $questions[ $hidden_question_id ] ) && $mlwQuizMasterNext->pluginHelper->is_question_type_graded( $questions[ $hidden_question_id ]['question_type_new'] ) ) {
+				++$hidden_graded_count;
+			}
+		}
+		if ( 0 < $total_questions - $hidden_graded_count ) {
+			$total_score = round( ( ( $total_correct / ( $total_questions - $hidden_graded_count ) ) * 100 ), 2 );
 		} else {
 			$total_score = 0;
 		}
